@@ -1,7 +1,0 @@
-{
-  "name": "com.studiochoose.sclib-scenemanager",
-  "displayName": "SCLib-SceneManager",
-  "version": "0.0.1",
-  "unity": "6.0",
-  "description": "シーン管理を行う機能"
-}

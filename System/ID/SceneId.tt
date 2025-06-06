@@ -1,0 +1,142 @@
+﻿<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+
+// ==============================================================================
+//
+// このファイルはテンプレートから自動生成されます
+//
+// ==============================================================================
+<#
+	var pUri = new Uri( this.Host.ResolveAssemblyReference("$(ProjectDir)")+"/" );
+
+	var bUri = new Uri( pUri, @"Assets\HeyBro\" );
+
+	var sceneFiles = Directory.EnumerateFiles( bUri.LocalPath, "*.unity", SearchOption.AllDirectories )
+		.Select( (p,i) => new{
+				Id   = i,
+				Name = Path.GetFileNameWithoutExtension(p),
+				Uri  = pUri.MakeRelativeUri( new Uri(p) )
+			} )
+		.Where( n => n.Name.EndsWith("Scene") || n.Name.EndsWith("SandBox") )
+		.ToArray();
+#>
+
+using System;
+using System.Collections.Generic;
+
+namespace CSLibrary
+{
+	// ==============================================================================
+	// SceneId
+	// ==============================================================================
+	public readonly partial struct SceneId
+	{
+<# foreach( var sceneFile in sceneFiles ) { #>
+		public static readonly SceneId <#= sceneFile.Name #> = new SceneId(<#= sceneFile.Name.GetHashCode() #>);
+<# }#>
+
+		// ==============================================================================
+		// SceneName と SceneId の紐づけ
+		// ==============================================================================
+		private static readonly Dictionary<string, SceneId> sm_nameToIdTable = new Dictionary<string,SceneId>(StringComparer.OrdinalIgnoreCase)
+		{
+<# foreach( var sceneFile in sceneFiles ) { #>
+			{ "<#= sceneFile.Name #>", SceneId.<#= sceneFile.Name #> },
+<# }#>
+		};
+
+		private static readonly Dictionary<SceneId, string> sm_idToNameTable = new Dictionary<SceneId,string>()
+		{
+<# foreach( var sceneFile in sceneFiles ) { #>
+			{ SceneId.<#= sceneFile.Name #>, "<#= sceneFile.Name #>" },
+<# }#>
+		};
+
+	    // ==============================================================================
+		// Getter
+		// ==============================================================================
+		public static SceneId Get( string sceneName ) 
+		{ 
+			if( sm_nameToIdTable.TryGetValue( sceneName, out var id ) )
+			{
+				return id;
+			}
+
+			return default;
+		}
+
+		public static string Get( SceneId sceneId ) 
+		{ 
+			if( sm_idToNameTable.TryGetValue( sceneId, out var name ) )
+			{
+				return name;
+			}
+
+			return string.Empty;
+		}
+	}
+
+	// ==============================================================================
+	// Address
+	// ==============================================================================
+	public partial class SceneAddress
+	{
+		private static Dictionary<SceneId, AssetAddress> sm_addressTable = new Dictionary<SceneId, AssetAddress>()
+		{
+<# foreach( var sceneFile in sceneFiles ) { #>
+			{ SceneId.<#= sceneFile.Name #>, new AssetAddress( "<#= sceneFile.Uri #>" ) },
+<# }#>
+		};
+	}
+
+<# foreach( var sceneFile in sceneFiles ) { #>
+	// <#= sceneFile.Uri #>
+	public partial class <#= sceneFile.Name #>
+	{
+		public partial class SceneData : ISceneData
+		{
+
+		}
+	}
+<# }#>
+
+	// ==============================================================================
+	// Key
+	// ==============================================================================
+	public partial class SceneKey<T>
+	{
+		public static SceneId Id { private set; get; }
+
+		static SceneKey()
+		{
+<# foreach( var sceneFile in sceneFiles ) { #>
+			SceneKey<<#= sceneFile.Name #>>.Id = SceneId.<#= sceneFile.Name #>;
+<# }#>
+		}
+	}
+
+	public class SceneKey
+	{
+		private static readonly Dictionary<Type, SceneId> sm_sceneKeyTable = new Dictionary<Type, SceneId>()
+		{
+<# foreach( var sceneFile in sceneFiles ) { #>
+			{ typeof(<#= sceneFile.Name #>), SceneId.<#= sceneFile.Name #> },
+<# }#>
+		};
+
+		public static SceneId GetId( Type type )
+		{
+			if( sm_sceneKeyTable.TryGetValue( type, out var id ) )
+			{
+				return id;
+			}
+
+			return default;
+		}
+	}
+}
