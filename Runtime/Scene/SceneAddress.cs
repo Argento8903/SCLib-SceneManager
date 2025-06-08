@@ -1,4 +1,7 @@
-﻿namespace CSLibrary
+﻿using UnityEngine;
+using System;
+
+namespace CSLibrary
 {
     public sealed partial class SceneAddress
     {
