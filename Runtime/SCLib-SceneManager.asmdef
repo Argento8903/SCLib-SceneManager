@@ -1,7 +1,9 @@
 {
     "name": "SCLib-SceneManager",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "SCLib-Core.Runtime"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
