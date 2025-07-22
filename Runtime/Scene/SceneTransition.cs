@@ -49,11 +49,6 @@ namespace CSLibrary
         public static async Task<TScene> LoadScene<TScene>( SceneId sceneId , LoadSceneMode mode , CancellationToken token = default ) where TScene : SceneBase
         {
             var scene = await SceneLoader.LoadScene<TScene>( sceneId , mode , token );
-
-            if ( scene == null )
-            {
-                Debug.LogError( "load scene null error" );
-            }
             scene.CanBootable = true;
             return scene;
         }
@@ -70,12 +65,6 @@ namespace CSLibrary
         public static async Task<TScene> LoadScene<TScene>( SceneId sceneId , ISceneData sceneData , LoadSceneMode mode , CancellationToken token = default ) where TScene : SceneBase
         {
             var scene = await SceneLoader.LoadScene<TScene>( sceneId , mode , token );
-
-            if ( scene == null )
-            {
-                Debug.LogError( "load scene null error" );
-            }
-
             // ロード完了後にデータを入れて起動可能にする
             scene.RequestSceneData = () => sceneData;
             scene.CanBootable = true;
