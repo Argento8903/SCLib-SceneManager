@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Diagnostics;
 
 namespace CSLibrary
 {
@@ -24,7 +25,7 @@ namespace CSLibrary
         /// <summary>
         /// シーンのロードタイミングで呼ばれる
         /// </summary>
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        [RuntimeInitializeOnLoadMethod( RuntimeInitializeLoadType.AfterSceneLoad )]
         private static void AfterSceneLoad()
         {
             var obj = new GameObject( nameof( SceneTransition ) );
@@ -32,27 +33,6 @@ namespace CSLibrary
             DontDestroyOnLoad( obj );
 
             obj.AddComponent<SceneTransition>();
-
-            SceneManager.sceneLoaded += DoOnSceneLoaded;
-        }
-
-        /// <summary>
-        /// 読み込み時にシーンを起動準備完了にする
-        /// </summary>
-        /// <param name="scene"></param>
-        /// <param name="loadSceneMode"></param>
-        private static void DoOnSceneLoaded( Scene scene, LoadSceneMode loadSceneMode )
-        {
-            scene.GetRootGameObjects( sm_rootObjects );
-
-            var sceneBase = sm_rootObjects.
-                Select( s => s.GetComponent<SceneBase>())
-                .FirstOrDefault( s => s!=null);
-
-            if ( sceneBase != null )
-            {
-                sceneBase.CanBootable = false;
-            }
         }
 
         // ============================================================================
@@ -66,9 +46,16 @@ namespace CSLibrary
         /// <param name="mode">読み込みモード</param>
         /// <param name="token">キャンセルトークン</param>
         /// <returns></returns>
-        public static async Task<TScene> LoadScene<TScene>( SceneId sceneId, LoadSceneMode mode, CancellationToken token )
+        public static async Task<TScene> LoadScene<TScene>( SceneId sceneId , LoadSceneMode mode , CancellationToken token = default ) where TScene : SceneBase
         {
-            return await SceneLoader.LoadScene<TScene>( sceneId, mode, token );
+            var scene = await SceneLoader.LoadScene<TScene>( sceneId , mode , token );
+
+            if ( scene == null )
+            {
+                Debug.LogError( "load scene null error" );
+            }
+            scene.CanBootable = true;
+            return scene;
         }
 
         /// <summary>
@@ -80,14 +67,18 @@ namespace CSLibrary
         /// <param name="mode">読み込みモード</param>
         /// <param name="token">キャンセルトークン</param>
         /// <returns></returns>
-        public static async Task<TScene> LoadScene<TScene>( SceneId sceneId, ISceneData sceneData, LoadSceneMode mode , CancellationToken token ) where TScene:SceneBase
+        public static async Task<TScene> LoadScene<TScene>( SceneId sceneId , ISceneData sceneData , LoadSceneMode mode , CancellationToken token = default ) where TScene : SceneBase
         {
-            var scene = await SceneLoader.LoadScene<TScene>( sceneId, mode, token );
+            var scene = await SceneLoader.LoadScene<TScene>( sceneId , mode , token );
+
+            if ( scene == null )
+            {
+                Debug.LogError( "load scene null error" );
+            }
 
             // ロード完了後にデータを入れて起動可能にする
-            scene.RequestSceneData = () => sceneData; 
+            scene.RequestSceneData = () => sceneData;
             scene.CanBootable = true;
-
             return scene;
         }
 
@@ -98,9 +89,9 @@ namespace CSLibrary
         /// <param name="sceneId">シーンID</param>
         /// <param name="token">キャンセルトークン</param>
         /// <returns></returns>
-        public static async Task<TScene> LoadSceneAdditive<TScene>( SceneId sceneId , CancellationToken token )
+        public static async Task<TScene> LoadSceneAdditive<TScene>( SceneId sceneId , CancellationToken token = default ) where TScene : SceneBase
         {
-            return await LoadScene<TScene>( sceneId, LoadSceneMode.Additive, token );
+            return await LoadScene<TScene>( sceneId , LoadSceneMode.Additive , token );
         }
 
         /// <summary>
@@ -111,9 +102,9 @@ namespace CSLibrary
         /// <param name="sceneData">シーンデータ</param>
         /// <param name="token">キャンセルトークン</param>
         /// <returns></returns>
-        public static async Task<TScene> LoadSceneAdditive<TScene>( SceneId sceneId , ISceneData sceneData , CancellationToken token ) where TScene : SceneBase
+        public static async Task<TScene> LoadSceneAdditive<TScene>( SceneId sceneId , ISceneData sceneData , CancellationToken token = default ) where TScene : SceneBase
         {
-            return await LoadScene<TScene>( sceneId, sceneData, LoadSceneMode.Additive , token );
+            return await LoadScene<TScene>( sceneId , sceneData , LoadSceneMode.Additive , token );
         }
     }
 }

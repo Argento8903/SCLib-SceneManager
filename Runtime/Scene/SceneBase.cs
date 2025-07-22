@@ -37,7 +37,7 @@ namespace CSLibrary
         /// <summary>
         /// ロード済み
         /// </summary>
-        public bool IsLoaded { get; private set; }
+        public bool IsLoaded { get; set; }
 
         // ============================================================================
         // プロパティ（ public ）
@@ -53,7 +53,7 @@ namespace CSLibrary
         /// <summary>
         /// 更新可能
         /// </summary>
-        protected bool CanUpdate { get; set; }
+        protected bool CanUpdate { get; set; } = true;
 
         // ============================================================================
         // MonoBehaviour 関数（ private ）
@@ -82,11 +82,11 @@ namespace CSLibrary
                 // シーン起動可能まで待機
                 await SceneBoot( token );
 
+                // シーンの読み込みが終わるまで待機する
+                await AwaitableUtility.AwaitFunc( this , c => CanBootable == true );
+
                 // シーンセットアップ完了まで待機
                 await SceneSetup( token );
-
-                // ロード完了
-                IsLoaded = true;
 
                 // シーン入り
                 DoEnterScene();

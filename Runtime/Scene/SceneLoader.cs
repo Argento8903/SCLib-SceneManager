@@ -22,7 +22,7 @@ namespace CSLibrary
         /// <param name="mode">読み込みモード</param>
         /// <param name="token">キャンセルトークン</param>
         /// <returns></returns>
-        public static async Task<TScene> LoadScene<TScene>( SceneId sceneId, LoadSceneMode mode, CancellationToken token = default )
+        public static async Task<TScene> LoadScene<TScene>( SceneId sceneId , LoadSceneMode mode , CancellationToken token = default )
         {
             token.ThrowIfCancellationRequested();
 
@@ -31,7 +31,7 @@ namespace CSLibrary
             DebugUtility.Log( $"=== Load {SceneId.Get( sceneId )} ===" , Color.green );
 
             // 非同期ロード
-            var asyncLoad = SceneManager.LoadSceneAsync( sceneName, mode );
+            var asyncLoad = SceneManager.LoadSceneAsync( sceneName , mode );
 
             asyncLoad.allowSceneActivation = false;
 
@@ -41,28 +41,41 @@ namespace CSLibrary
                 await Task.Yield();
             }
 
-            DebugUtility.Log( $"=== Load Completed {SceneId.Get( sceneId )} ===" , Color.green );
-
             asyncLoad.allowSceneActivation = true;
 
             // シーンオブジェクト取得
             var scene = SceneManager.GetSceneByPath( SceneAddress.Get( sceneId ).Address );
 
-            if( !scene.IsValid() )
+            if ( !scene.IsValid() )
             {
                 Debug.LogError( "Scene is vaild" );
 
                 return default( TScene );
             }
 
-            var rootObject = scene.GetRootGameObjects();
+            var sceneBaseComponet = new TaskCompletionSource<TScene>( /*TaskCreationOptions.RunContinuationsAsynchronously*/ );
 
-            // ベースを持ってるクラスを取得
-            var sceneBase = rootObject
-                    .Select( s => s.GetComponentInChildren<TScene>(true) )
-                    .FirstOrDefault( s => s != null );
+            SceneManager.sceneLoaded += DoOnSceneLoaded;
 
-            return sceneBase;
+            void DoOnSceneLoaded( Scene scene , LoadSceneMode loadSceneMode )
+            {
+                SceneManager.sceneLoaded -= DoOnSceneLoaded;
+
+                var rootObject = scene.GetRootGameObjects();
+
+                // ベースを持ってるクラスを取得
+                var sceneBase = rootObject
+                        .Select( s => s.GetComponentInChildren<TScene>( true ) )
+                        .FirstOrDefault( s => s != null );
+
+                DebugUtility.Log( $"=== Load Completed {SceneId.Get( sceneId )} ===" , Color.green );
+
+                sceneBaseComponet.TrySetResult( sceneBase );
+            }
+
+            await sceneBaseComponet.Task;
+
+            return sceneBaseComponet.Task.Result;
         }
 
         /// <summary>
@@ -71,7 +84,7 @@ namespace CSLibrary
         /// <param name="sceneId">シーンID</param>
         /// <param name="token">キャンセルトークン</param>
         /// <returns></returns>
-        public static async Task UnLoadScene( SceneId sceneId, CancellationToken token = default )
+        public static async Task UnLoadScene( SceneId sceneId , CancellationToken token = default )
         {
             token.ThrowIfCancellationRequested();
 
@@ -86,13 +99,13 @@ namespace CSLibrary
             // 非同期アンロード
             var asyncUnLoad = SceneManager.UnloadSceneAsync( scene );
 
-            if( asyncUnLoad == null )
+            if ( asyncUnLoad == null )
             {
                 return;
             }
 
             // 完了するまでスキップ
-            while(!asyncUnLoad.isDone )
+            while ( !asyncUnLoad.isDone )
             {
                 await Task.Yield();
             }
